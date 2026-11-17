@@ -29,3 +29,5 @@ def test_narration_only_receives_report_fields(monkeypatch):
     report["private"] = "must not send"
     assert narrate(report, "why")[0] == "Synthetic example."
     assert "must not send" not in json.dumps(sent)
+    report["source"] = "tws"
+    assert narrate(report, "why")[0] is None  # Reject synthetic label on real quotes.

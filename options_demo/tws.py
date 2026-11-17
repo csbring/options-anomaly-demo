@@ -2,6 +2,7 @@
 import asyncio
 from datetime import datetime, timezone
 import os
+import socket
 
 import numpy as np
 import pandas as pd
@@ -11,17 +12,32 @@ from .engine.quotes import ticker_to_quote_row
 DATA_TYPES = {1: "live", 2: "frozen", 3: "delayed", 4: "delayed frozen"}
 
 
+class TWSUnavailable(RuntimeError):
+    pass
+
+
+def reachable():
+    try:
+        with socket.create_connection((os.getenv("TWS_HOST", "127.0.0.1"), int(os.getenv("TWS_PORT", "7497"))), timeout=1):
+            return True
+    except (OSError, ValueError):
+        return False
+
+
 async def collect_async(symbol):
     from ib_async import IB, Stock, Option
     ib = IB()
     ib.RequestTimeout = 12
     subscriptions = []
     try:
-        await ib.connectAsync(
-            os.getenv("TWS_HOST", "127.0.0.1"), int(os.getenv("TWS_PORT", "7497")),
-            clientId=int(os.getenv("TWS_CLIENT_ID", "76")), timeout=8,
-            readonly=True, fetchFields=0,
-        )
+        try:
+            await ib.connectAsync(
+                os.getenv("TWS_HOST", "127.0.0.1"), int(os.getenv("TWS_PORT", "7497")),
+                clientId=int(os.getenv("TWS_CLIENT_ID", "76")), timeout=8,
+                readonly=True, fetchFields=0,
+            )
+        except Exception:
+            raise TWSUnavailable("TWS connectivity is not available.") from None
         market_type = int(os.getenv("TWS_MARKET_DATA_TYPE", "1"))
         if market_type not in DATA_TYPES:
             raise ValueError("TWS_MARKET_DATA_TYPE must be 1, 2, 3 or 4.")

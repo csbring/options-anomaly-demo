@@ -54,9 +54,11 @@ def plot_report(scored: pd.DataFrame, symbol: str, source: str) -> str:
             spine.set_color("#294053")
     normal = scored[~scored.is_anomaly]
     flagged = scored[scored.is_anomaly]
-    axes[0].scatter(normal.open_interest, normal.volume, s=16, alpha=.5, c="#6a899f", label="Other quotes")
-    axes[0].scatter(flagged.open_interest, flagged.volume, s=44, c="#ffc47a", label="Flagged")
-    axes[0].set(xscale="symlog", yscale="symlog", xlabel="Open interest", ylabel="Volume", title="01  Activity versus positioning")
+    has_oi = scored.open_interest.gt(0).any()
+    x = "open_interest" if has_oi else "strike"
+    axes[0].scatter(normal[x], normal.volume, s=16, alpha=.5, c="#6a899f", label="Other quotes")
+    axes[0].scatter(flagged[x], flagged.volume, s=44, c="#ffc47a", label="Flagged")
+    axes[0].set(xscale="symlog" if has_oi else "linear", yscale="symlog", xlabel="Open interest" if has_oi else "Strike · open interest unavailable", ylabel="Volume", title="01  Activity versus positioning" if has_oi else "01  Activity · open interest missing")
     axes[0].legend(facecolor="#101d2b", labelcolor="#b2c2d3", fontsize=8)
     for side, color in (("call", "#60dfc2"), ("put", "#a7adff")):
         part = scored[scored.option_type == side]
@@ -87,6 +89,12 @@ def analyze(symbol: str, scenario="call_activity", source="synthetic") -> dict:
         model_basis = "Current snapshot fit · cross-sectional outliers, no historical baseline"
     else:
         raise ValueError("Unsupported data source.")
+    return build_report(symbol, raw, train, label, model_basis, metadata, source, scenario)
+
+
+def build_report(symbol, raw, train, label, model_basis, metadata, source="tws", scenario="call_activity"):
+    """Score only supplied quote columns; also supports importing a saved snapshot."""
+    symbol = parse_symbol(symbol)
     current = prepare(raw, symbol)
     scored = score_with_training_cache(current, train, n_estimators=150)
     if scored.empty:
@@ -102,9 +110,12 @@ def analyze(symbol: str, scenario="call_activity", source="synthetic") -> dict:
         "metadata": metadata, "quotes": len(scored), "excluded": len(raw)-len(scored),
         "flagged": len(flags), "calls": counts["call"], "puts": counts["put"],
         "quality_pass": len(eligible), "spot": round(float(scored.spot.iloc[0]), 2),
-        "chart": plot_report(scored, symbol, label),
+        "chart": plot_report(scored, symbol, label if source == "synthetic" else f"{label}\nCollected: {metadata['quote_time']}"),
     }
     cols = ["contract", "option_type", "strike", "expiry", "volume", "open_interest", "volume_oi_ratio", "spread_pct", "anomaly_score", "is_anomaly", "reason"]
+    scored["data_collected_at"] = metadata["quote_time"]
+    scored["data_source"] = label
+    cols += ["data_collected_at", "data_source"]
     if "quote_received_at" in scored:
         cols += ["quote_received_at", "market_data_type"]
     result["rows"] = json.loads(scored[cols].head(12).to_json(orient="records"))

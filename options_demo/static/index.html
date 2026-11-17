@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Options Anomaly Lab</title><link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script></head>
+<head><meta charset="utf-8"><meta name="api-base" content=""><meta name="viewport" content="width=device-width,initial-scale=1"><title>Options Anomaly Lab</title><link rel="stylesheet" href="static/style.css"><script src="static/app.js" defer></script></head>
 <body>
-<header><a class="brand" href="/" aria-label="Options Anomaly Lab home"><span class="mark">∿</span><span>OPTIONS<span class="brand-light"> / ANOMALY LAB</span></span></a><span class="environment" id="environment">LOCAL RESEARCH DEMO</span><a class="source" href="https://github.com/csbring/options-anomaly-demo" target="_blank" rel="noreferrer">View source ↗</a></header>
+<header><a class="brand" href="./" aria-label="Options Anomaly Lab home"><span class="mark">∿</span><span>OPTIONS<span class="brand-light"> / ANOMALY LAB</span></span></a><span class="environment" id="environment">LOCAL RESEARCH DEMO</span><a class="source" href="https://github.com/csbring/options-anomaly-demo" target="_blank" rel="noreferrer">View source ↗</a></header>
 <main>
 <aside aria-label="Research chat">
  <div class="aside-heading"><span class="eyebrow">01 / CONVERSATION</span><h1>Start with<br>a ticker.</h1><p>Ask about unusual options activity.<br>See the evidence behind the answer.</p></div>
@@ -14,6 +14,7 @@
 </aside>
 <section class="workspace" aria-label="Analysis results">
  <div class="workspace-top"><span class="eyebrow">02 / THE EVIDENCE</span><span id="mode-label" class="pill">SYNTHETIC DATA</span></div>
+ <div id="connection-banner" class="connection-banner" role="status" hidden></div>
  <section id="empty" class="empty"><span class="empty-graphic" aria-hidden="true">↗</span><h2>Unusual activity.<br>Visible evidence.</h2><p>One message turns an option chain into a conversation.<br>Explore activity, anomaly scores, and quote quality together.</p><ol><li><span>01</span> Enter a ticker in the chat</li><li><span>02</span> Inspect the flagged contracts</li><li><span>03</span> Ask what stands out and why</li></ol><div class="empty-note">The default demo generates fictional quotes. Ticker symbols are labels, not current market observations.</div></section>
  <section id="report" hidden>
   <div class="report-heading"><div><h2><span id="ticker"></span><span class="subtitle"> / options snapshot</span></h2><p id="basis"></p></div><button id="download-chart" class="outline">Download plot ↓</button></div>

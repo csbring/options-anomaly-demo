@@ -2,11 +2,15 @@
 
 **Type a ticker. Get an options-anomaly report, three plots, and answers grounded in the results.**
 
+**[Open the hosted demo → cbring.synology.me/options-anomaly/](https://cbring.synology.me/options-anomaly/)**
+
+The hosted demo uses real market quotes from the owner's TWS connection. If TWS is closed, it shows **“TWS connectivity is not available”** and displays the last saved run with its original collection date. The initial saved runs were imported from the original collector's October 23, 2026 snapshots and rescored by the demo. A new successful scan replaces that ticker's saved report. Missing data is never silently replaced with synthetic quotes. Live, delayed and frozen feed types are labeled when provided by TWS; imported snapshots whose feed type was not recorded are labeled accordingly.
+
 A standalone demo of a chat-driven options research workflow: ticker → option quotes → anomaly models → plots → explanation. It extracts the scoring engine from an existing TWS options-flow project and adds a portable chat interface. The original WhatsApp connection has not been reconstructed; this repository demonstrates the analysis workflow in a local browser and through a machine-readable CLI.
 
 ![Options Anomaly Lab: ticker chat, anomaly plots and ranked contracts](docs/demo.png)
 
-The default experience needs **no brokerage account, paid API, model download or credentials**. All default prices, dates, volumes and positions are generated fixtures. AAPL, NVDA and other symbols are labels for fictional scenarios, not current market observations.
+The default **local** experience needs **no brokerage account, paid API, model download or credentials**. Its prices, dates, volumes and positions are generated fixtures. The screenshot above shows this synthetic local mode. AAPL, NVDA and other symbols in local synthetic mode are labels for fictional scenarios, not current market observations.
 
 ## Run the demo
 
@@ -63,7 +67,9 @@ options-demo --serve --source tws
 
 Enable the socket API and **Read-Only API** in your own TWS/IB Gateway. Relevant market-data subscriptions are required. `TWS_HOST` defaults to `127.0.0.1`; `TWS_MARKET_DATA_TYPE` defaults to `1` (request live). Values 2, 3 and 4 request frozen, delayed and delayed-frozen data. The report records the type TWS actually returns, including delayed/frozen labels; requesting live does not guarantee fresh quotes.
 
-The adapter requests at most **48 option contracts** (two expirations, 12 nearby strikes, both sides), cancels subscriptions, and disconnects. Collection is bounded by a 55-second timeout. It disables account/order startup fetches and provides no order endpoints. Runtime output contains selected quote fields only. This optional adapter has mocked integration coverage; it has **not been verified against a live broker session for this release**. It will fail clearly if usable volume/quotes or sufficient rows are unavailable.
+The adapter requests at most **48 option contracts** (two expirations, 12 nearby strikes, both sides), cancels subscriptions, and disconnects. Collection is bounded by a 55-second timeout. It disables account/order startup fetches and provides no order endpoints. Runtime output contains selected quote fields only. This adapter has mocked integration coverage; a fresh live scan remains **unverified while the owner's TWS is closed**. Connectivity failures and unusable quote snapshots are distinguished, and an available saved report is displayed with its original timestamp.
+
+In TWS mode successful reports are saved privately under `~/.local/share/options-anomaly-demo/reports` (override with `OPTIONS_REPORT_DIR`). Up to 50 ticker reports survive restarts. Synthetic results are not saved there. The browser loads the latest saved report on arrival, then attempts a fresh scan when you enter a ticker. A failed scan never overwrites a successful saved run or substitutes a different ticker's result. TWS scans return a structured explanation immediately; optional local-model follow-ups run separately.
 
 TWS mode fits each side's **current snapshot** because this public demo contains no historical cache. Synthetic mode trains on a separate generated baseline of 480 rows. These are different modeling regimes and are labeled in every report.
 
@@ -102,4 +108,4 @@ pytest -q
 
 Tests cover scenario behavior, invalid quotes, missing OI, chat follow-ups, request boundaries, model fallback, and bounded TWS subscription cleanup with a fake broker. [Release validation](docs/VALIDATION.md).
 
-The server binds to loopback. It is a local research demo, with no multi-user authentication or public-hosting configuration. Report state is in memory, limited to 16 reports and 30 minutes. Restarting the server clears it. Nothing is automatically saved except explicit CLI exports or browser downloads.
+The CLI server binds to loopback. The separate [Synology deployment](deploy/README.md) uses a gateway-authenticated backend with bounded requests, one active analysis and rate limits. It publishes quote reports only; no account endpoints or messaging credentials are exposed. Chat context IDs remain in memory, limited to 16 reports and 30 minutes. Saved TWS reports persist separately. Runtime data and gateway configuration are outside this Git repository.

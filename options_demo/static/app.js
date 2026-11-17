@@ -1,6 +1,12 @@
 "use strict";
 const $ = id => document.getElementById(id);
+const apiBase = document.querySelector('meta[name="api-base"]')?.content || "";
+const api = path => apiBase ? apiBase + encodeURIComponent(path) : path;
 let reportId = null, report = null, busy = false;
+function banner(text) {
+  $("connection-banner").textContent = text;
+  $("connection-banner").hidden = !text;
+}
 function addMessage(text, user = false, label = "ANOMALY LAB", error = false) {
   const article = document.createElement("article");
   article.className = `message ${user ? "user" : "assistant"}${error ? " error" : ""}`;
@@ -14,7 +20,8 @@ function displayReport(data) {
   report = data;
   $("empty").hidden = true; $("report").hidden = false;
   $("ticker").textContent = data.symbol; $("basis").textContent = data.model_basis;
-  $("mode-label").textContent = data.source === "synthetic" ? "SYNTHETIC DATA" : "TWS SNAPSHOT";
+  $("mode-label").textContent = data.source === "synthetic" ? "SYNTHETIC DATA" : data.availability?.cached ? "LAST SAVED RUN" : "TWS SNAPSHOT";
+  banner(data.availability?.message || "");
   $("provenance").textContent = `${data.source_label} · ${data.metadata.quote_time}`;
   $("quotes").textContent = data.quotes; $("flagged").textContent = data.flagged;
   $("sides").textContent = `${data.calls} / ${data.puts}`;
@@ -37,15 +44,17 @@ async function send(message) {
   addMessage(message, true); $("message").value = "";
   $("status").textContent = "Working through the data…";
   try {
-    const response = await fetch("/api/chat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({message, report_id: reportId, scenario: $("scenario").value})});
+    const response = await fetch(api("/api/chat"), {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({message, report_id: reportId, scenario: $("scenario").value})});
+    if (!response.headers.get("content-type")?.includes("application/json")) throw new Error("The analysis service is unavailable. Any previous report remains displayed.");
     const data = await response.json();
-    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Check the message and try again.");
+    if (!response.ok || data.error) throw new Error(typeof data.detail === "string" ? data.detail : "Check the message and try again.");
     reportId = data.report_id;
     if (data.report) displayReport(data.report);
     addMessage(data.text, false, data.narrator);
-    $("status").textContent = "Ready. Ask a follow-up or enter another ticker.";
+    $("status").textContent = data.report?.availability?.cached ? "Showing a saved run. Enter a ticker to retry TWS." : "Ready. Ask a follow-up or enter another ticker.";
   } catch (error) {
     addMessage(error.message || "Could not reach the local server.", false, "PLEASE TRY AGAIN", true);
+    if (error.message.includes("TWS")) banner(error.message);
     $("status").textContent = "Your previous report is still available.";
   } finally {
     busy = false; $("send").disabled = false; $("scenario").disabled = false;
@@ -61,12 +70,25 @@ function download(blob, name) {
 }
 $("download-chart").addEventListener("click", () => {if (report) download(new Blob([Uint8Array.from(atob(report.chart), c => c.charCodeAt(0))], {type:"image/png"}), `${report.symbol}-anomalies.png`);});
 $("download-csv").addEventListener("click", () => {if (report) download(new Blob([report.csv], {type:"text/csv"}), `${report.symbol}-quotes.csv`);});
-fetch("/api/status").then(r => r.json()).then(s => {
+fetch(api("/api/status")).then(r => r.json()).then(async s => {
   $("environment").textContent = s.local_model ? "LOCAL MODEL CONFIGURED" : "LOCAL RESEARCH DEMO";
   if (s.source === "tws") {
     $("mode-label").textContent = "TWS MODE";
     $("scenario").hidden = true; document.querySelector('label[for="scenario"]').hidden = true;
-    $("chat").firstElementChild.querySelector("p").textContent = "TWS mode is enabled. Enter a ticker to request a bounded option snapshot from your local broker connection. The resulting report identifies live, frozen or delayed data.";
-    document.querySelector(".empty-note").textContent = "TWS mode uses your configured local connection. Data availability and quality depend on subscriptions and market hours.";
+    $("chat").firstElementChild.querySelector("p").textContent = "Type a ticker to analyze real TWS option quotes. If TWS is offline, the last saved run remains available with its collection date.";
+    document.querySelector(".empty-note").textContent = "This demo uses real TWS quotes. Availability depends on the owner's connection, subscriptions and market hours. Saved runs are labeled with their original dates.";
+    if (s.public) {
+      $("environment").textContent = "PUBLIC RESEARCH DEMO";
+      document.querySelector(".privacy").textContent = "Market quotes only. No account details or order execution. Last successful reports are retained for offline viewing.";
+    }
+    if (!s.tws_reachable) banner("TWS connectivity is not available. Checking for the last saved run…");
+    const previous = await fetch(api("/api/last")).then(r => r.json());
+    if (!busy && !report) {
+      if (previous.report) {
+        reportId = previous.report_id;
+        displayReport(previous.report);
+        addMessage(previous.text, false, previous.narrator);
+      } else banner(previous.text);
+    }
   }
 }).catch(() => {$("status").textContent = "Server unavailable. Restart the local demo.";});
