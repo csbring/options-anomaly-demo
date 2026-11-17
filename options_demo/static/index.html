@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Options Anomaly Lab</title><link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script></head>
+<body>
+<header><a class="brand" href="/" aria-label="Options Anomaly Lab home"><span class="mark">∿</span><span>OPTIONS<span class="brand-light"> / ANOMALY LAB</span></span></a><span class="environment" id="environment">LOCAL RESEARCH DEMO</span><a class="source" href="https://github.com/csbring/options-anomaly-demo" target="_blank" rel="noreferrer">View source ↗</a></header>
+<main>
+<aside aria-label="Research chat">
+ <div class="aside-heading"><span class="eyebrow">01 / CONVERSATION</span><h1>Start with<br>a ticker.</h1><p>Ask about unusual options activity.<br>See the evidence behind the answer.</p></div>
+ <label for="scenario">Demo scenario</label><select id="scenario"><option value="call_activity">Unusual call activity</option><option value="put_activity">Unusual put activity</option><option value="wide_spreads">Activity with poor spreads</option></select>
+ <div class="suggestions" aria-label="Example tickers"><button data-message="AAPL">AAPL ↗</button><button data-message="NVDA">NVDA ↗</button><button data-message="SPY">SPY ↗</button></div>
+ <div id="chat" role="log" aria-live="polite"><article class="message assistant"><span class="speaker">ANOMALY LAB</span><p>Type a ticker to generate three plots and a ranked contract table. No brokerage login needed for the demo.</p></article></div>
+ <form id="composer"><label class="sr-only" for="message">Ticker or follow-up question</label><div class="input-row"><input id="message" name="message" placeholder="AAPL, or flow NVDA…" maxlength="240" autocomplete="off" required><button id="send" type="submit" aria-label="Send message">↑</button></div><span id="status" role="status">Try a ticker, then ask “why” or “quality”.</span></form>
+ <p class="privacy">Runs on your machine. No accounts or chat history are included in this demo.</p>
+</aside>
+<section class="workspace" aria-label="Analysis results">
+ <div class="workspace-top"><span class="eyebrow">02 / THE EVIDENCE</span><span id="mode-label" class="pill">SYNTHETIC DATA</span></div>
+ <section id="empty" class="empty"><span class="empty-graphic" aria-hidden="true">↗</span><h2>Unusual activity.<br>Visible evidence.</h2><p>One message turns an option chain into a conversation.<br>Explore activity, anomaly scores, and quote quality together.</p><ol><li><span>01</span> Enter a ticker in the chat</li><li><span>02</span> Inspect the flagged contracts</li><li><span>03</span> Ask what stands out and why</li></ol><div class="empty-note">The default demo generates fictional quotes. Ticker symbols are labels, not current market observations.</div></section>
+ <section id="report" hidden>
+  <div class="report-heading"><div><h2><span id="ticker"></span><span class="subtitle"> / options snapshot</span></h2><p id="basis"></p></div><button id="download-chart" class="outline">Download plot ↓</button></div>
+  <div id="provenance" class="provenance"></div>
+  <div class="metrics"><div><span>QUOTES SCORED</span><strong id="quotes"></strong></div><div><span>FLAGGED AS UNUSUAL</span><strong id="flagged"></strong></div><div><span>CALLS / PUTS FLAGGED</span><strong id="sides"></strong></div><div><span>PASS QUALITY CHECKS</span><strong id="quality"></strong></div></div>
+  <figure><img id="chart" alt="Three options-analysis plots: volume versus open interest, anomaly score by strike, and score versus spread"><figcaption>Amber highlights indicate model flags. Scores measure unusualness, not expected returns.</figcaption></figure>
+  <div class="table-title"><div><h3>Contracts worth a closer look</h3><p>Highest anomaly scores · descriptive context, not trade recommendations</p></div><button id="download-csv" class="outline">Export CSV ↓</button></div>
+  <div class="table-scroll"><table><thead><tr><th>CONTRACT</th><th>VOLUME / OI</th><th>SPREAD</th><th>SCORE</th><th>WHAT STANDS OUT</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="followups"><span>KEEP EXPLORING</span><button data-message="why">Why these contracts?</button><button data-message="quality">Check quote quality</button><button data-message="model">Explain the model</button></div>
+  <details><summary>How to read this report</summary><p>Calls and puts use separate Isolation Forest models with robust median/IQR feature scaling. The synthetic demo trains on a separate generated baseline; TWS mode fits the current snapshot only. Wide spreads, missing open interest, incomplete Greeks and thin activity affect interpretation.</p><p>Volume does not reveal buyer versus seller intent. Volume × midpoint × 100 is only an approximate notional, not observed trade premium. Rule-based reasons describe a contract; they are not model feature attributions.</p></details>
+ </section>
+ <footer><span>CHAT → QUOTES → MODEL → PLOTS</span><span>Research prototype · no order execution</span></footer>
+</section>
+</main>
+</body></html>
